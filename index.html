@@ -1,0 +1,2526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Four Pilar — Sistema de Mesa</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+
+:root {
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --gold-dim: #7a6030;
+  --ember: #d4531a;
+  --ember-dim: #7a2e0a;
+  --ash: #2a2520;
+  --ash-mid: #1a1510;
+  --ash-dark: #0d0b08;
+  --ash-light: #3d3830;
+  --fog: #8a7d6a;
+  --fog-light: #b0a490;
+  --soul-blue: #4a9eca;
+  --soul-glow: #7dc4e8;
+  --white: #f0ebe0;
+  --red-death: #8b1a1a;
+  --green-alive: #3d7a3d;
+  --sidebar-w: 260px;
+  --header-h: 60px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--ash-dark);
+  color: var(--white);
+  font-family: 'EB Garamond', serif;
+  font-size: 16px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Noise overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+h1, h2, h3, h4, .title-font { font-family: 'Cinzel', serif; }
+.decorative { font-family: 'Cinzel Decorative', serif; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--ash-dark); }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+
+/* ===== LAYOUT ===== */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ===== HEADER ===== */
+#header {
+  height: var(--header-h);
+  background: linear-gradient(180deg, #000 0%, var(--ash-mid) 100%);
+  border-bottom: 1px solid var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+#header::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.header-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 1.3rem;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(201,168,76,0.5);
+  letter-spacing: 2px;
+}
+
+.header-subtitle {
+  font-size: 0.7rem;
+  color: var(--fog);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-family: 'Cinzel', serif;
+}
+
+.header-rune {
+  font-size: 1.8rem;
+  color: var(--gold-dim);
+  opacity: 0.6;
+}
+
+/* ===== MAIN LAYOUT ===== */
+#main { display: flex; flex: 1; overflow: hidden; }
+
+/* ===== SIDEBAR ===== */
+#sidebar {
+  width: var(--sidebar-w);
+  background: linear-gradient(180deg, var(--ash-mid) 0%, var(--ash-dark) 100%);
+  border-right: 1px solid var(--gold-dim);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.nav-section { padding: 8px 0; border-bottom: 1px solid rgba(201,168,76,0.1); }
+.nav-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  color: var(--gold-dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 8px 16px 4px;
+}
+
+.nav-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: var(--fog-light);
+  font-family: 'EB Garamond', serif;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+
+.nav-btn:hover { background: rgba(201,168,76,0.08); color: var(--gold-light); }
+.nav-btn.active { background: rgba(201,168,76,0.12); color: var(--gold); border-left: 2px solid var(--gold); }
+.nav-btn .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+/* ===== CONTENT ===== */
+#content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  position: relative;
+}
+
+.page { display: none; animation: fadeIn 0.3s ease; }
+.page.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== PAGE HEADER ===== */
+.page-header {
+  padding: 30px 30px 20px;
+  border-bottom: 1px solid rgba(201,168,76,0.2);
+  background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+  position: relative;
+}
+
+.page-header h2 {
+  font-size: 1.8rem;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.page-header p {
+  color: var(--fog);
+  font-style: italic;
+  margin-top: 4px;
+  font-size: 0.95rem;
+}
+
+.page-body { padding: 24px 30px; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid var(--gold-dim);
+  color: var(--gold-light);
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.btn:hover { background: rgba(201,168,76,0.15); border-color: var(--gold); color: var(--gold); }
+.btn-primary { background: rgba(201,168,76,0.2); border-color: var(--gold); color: var(--gold); }
+.btn-primary:hover { background: rgba(201,168,76,0.35); }
+.btn-danger { border-color: var(--red-death); color: #e05555; }
+.btn-danger:hover { background: rgba(139,26,26,0.2); }
+.btn-soul { border-color: var(--soul-blue); color: var(--soul-glow); }
+.btn-soul:hover { background: rgba(74,158,202,0.15); }
+.btn-sm { padding: 5px 12px; font-size: 0.7rem; }
+
+/* ===== CARDS ===== */
+.card {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(201,168,76,0.2);
+  padding: 20px;
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+.card-title {
+  font-family: 'Cinzel', serif;
+  color: var(--gold);
+  font-size: 1rem;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+/* ===== GRID ===== */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+/* ===== DIVIDER ===== */
+.divider {
+  border: none;
+  border-top: 1px solid rgba(201,168,76,0.15);
+  margin: 20px 0;
+  position: relative;
+}
+.divider::after {
+  content: '✦';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--gold-dim);
+  font-size: 0.7rem;
+  background: var(--ash-dark);
+  padding: 0 8px;
+}
+
+/* ===== BADGE ===== */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.badge-gold { border-color: var(--gold-dim); color: var(--gold); background: rgba(201,168,76,0.1); }
+.badge-red { border-color: var(--red-death); color: #e05555; background: rgba(139,26,26,0.15); }
+.badge-blue { border-color: var(--soul-blue); color: var(--soul-glow); background: rgba(74,158,202,0.1); }
+.badge-green { border-color: #3d7a3d; color: #6fba6f; background: rgba(61,122,61,0.1); }
+.badge-gray { border-color: var(--fog); color: var(--fog-light); background: rgba(138,125,106,0.1); }
+
+/* ===== INPUTS ===== */
+input, textarea, select {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--gold-dim);
+  color: var(--white);
+  font-family: 'EB Garamond', serif;
+  font-size: 0.95rem;
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+input::placeholder, textarea::placeholder { color: var(--fog); }
+select option { background: var(--ash-mid); }
+
+label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 1.5px;
+  color: var(--gold-dim);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.form-group { margin-bottom: 16px; }
+
+/* ===== MAP PAGE ===== */
+#map-container {
+  position: relative;
+  width: 100%;
+  background: radial-gradient(ellipse at center, #1a1208 0%, #0a0804 100%);
+  overflow: hidden;
+}
+
+#world-map {
+  width: 100%;
+  height: 100%;
+}
+
+.map-region {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.map-region:hover path, .map-region:hover ellipse, .map-region:hover polygon {
+  filter: brightness(1.4);
+}
+
+.map-label {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  fill: var(--gold-light);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.player-token {
+  cursor: grab;
+  filter: drop-shadow(0 0 8px var(--soul-glow));
+  transition: filter 0.3s;
+}
+
+.player-token:hover { filter: drop-shadow(0 0 12px var(--soul-glow)) brightness(1.2); }
+.player-token.soul-state { filter: drop-shadow(0 0 15px #4a9eca) opacity(0.7); }
+
+/* ===== PLAYERS PAGE ===== */
+.player-card {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(201,168,76,0.25);
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.player-card:hover { border-color: var(--gold-dim); }
+
+.player-card.soul-state {
+  border-color: var(--soul-blue);
+  box-shadow: 0 0 20px rgba(74,158,202,0.2);
+}
+
+.player-card.dead-state {
+  border-color: var(--red-death);
+  opacity: 0.7;
+}
+
+.player-avatar-area {
+  height: 120px;
+  background: linear-gradient(135deg, #1a1208, #0d0b08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(201,168,76,0.15);
+}
+
+.player-avatar-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gold-dim);
+}
+
+.player-avatar-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(201,168,76,0.1);
+  border: 2px solid var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.soul-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(74,158,202,0.3) 0%, transparent 70%);
+  animation: soulPulse 2s infinite;
+  display: none;
+}
+
+.soul-state .soul-overlay { display: block; }
+
+@keyframes soulPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.player-info { padding: 14px; }
+.player-name {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  color: var(--gold);
+  margin-bottom: 2px;
+}
+.player-class { font-size: 0.85rem; color: var(--fog); font-style: italic; margin-bottom: 10px; }
+
+/* HP Bar */
+.stat-bar { margin-bottom: 8px; }
+.stat-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--fog); margin-bottom: 3px; font-family: 'Cinzel', serif; letter-spacing: 0.5px; }
+.stat-bar-track { height: 6px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); }
+.stat-bar-fill { height: 100%; transition: width 0.5s; }
+.hp-fill { background: linear-gradient(90deg, #8b1a1a, #e05555); }
+.stamina-fill { background: linear-gradient(90deg, #1a4d1a, #6fba6f); }
+.soul-fill { background: linear-gradient(90deg, #1a3d5a, var(--soul-glow)); }
+
+.player-state-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.6rem;
+  padding: 3px 8px;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+/* ===== SOUL ABILITIES ===== */
+.soul-abilities {
+  display: none;
+  padding: 12px;
+  background: rgba(74,158,202,0.05);
+  border-top: 1px solid rgba(74,158,202,0.2);
+  margin-top: 8px;
+}
+
+.soul-state .soul-abilities { display: block; }
+
+.soul-ability {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(74,158,202,0.1);
+  font-size: 0.85rem;
+}
+
+.soul-ability:last-child { border-bottom: none; }
+.soul-ability-icon { color: var(--soul-glow); font-size: 0.9rem; flex-shrink: 0; margin-top: 2px; }
+.soul-ability-name { color: var(--soul-glow); font-family: 'Cinzel', serif; font-size: 0.75rem; display: block; }
+.soul-ability-desc { color: var(--fog-light); font-size: 0.8rem; }
+
+.soul-abilities-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  color: var(--soul-blue);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* ===== NPC CARDS ===== */
+.npc-card {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(201,168,76,0.15);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.npc-card:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+
+.npc-portrait {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  position: relative;
+}
+
+.npc-info { padding: 12px; }
+.npc-name { font-family: 'Cinzel', serif; color: var(--gold); font-size: 0.85rem; margin-bottom: 4px; }
+.npc-role { font-size: 0.8rem; color: var(--fog); font-style: italic; margin-bottom: 8px; }
+
+/* ===== LOCATION CARDS ===== */
+.location-card {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(201,168,76,0.15);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.location-card:hover { border-color: var(--gold-dim); }
+
+.location-art {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.location-info { padding: 14px; }
+.location-name { font-family: 'Cinzel', serif; color: var(--gold); font-size: 0.95rem; margin-bottom: 4px; }
+.location-type { font-size: 0.8rem; color: var(--fog); font-style: italic; margin-bottom: 8px; }
+
+/* ===== RULEBOOK ===== */
+.rule-section {
+  margin-bottom: 24px;
+  border-left: 2px solid var(--gold-dim);
+  padding-left: 16px;
+}
+
+.rule-section-title {
+  font-family: 'Cinzel', serif;
+  color: var(--gold);
+  font-size: 1rem;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.rule-item {
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(201,168,76,0.1);
+}
+
+.rule-item-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  color: var(--gold-light);
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.rule-item-desc { font-size: 0.9rem; color: var(--fog-light); line-height: 1.6; }
+
+.rule-warning {
+  background: rgba(139,26,26,0.15);
+  border-color: var(--red-death);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.rule-warning-title { color: #e05555; }
+
+/* ===== DICE ROLLER ===== */
+.dice-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.dice-btn {
+  width: 70px;
+  height: 70px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--gold-dim);
+  color: var(--gold-light);
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.dice-btn:hover { background: rgba(201,168,76,0.15); border-color: var(--gold); transform: scale(1.05); }
+.dice-btn .dice-icon { font-size: 1.5rem; }
+
+.dice-result {
+  text-align: center;
+  padding: 20px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--gold-dim);
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.dice-number {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 4rem;
+  color: var(--gold);
+  text-shadow: 0 0 30px rgba(201,168,76,0.6);
+  animation: diceReveal 0.3s ease;
+}
+
+@keyframes diceReveal {
+  from { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.dice-label { font-family: 'Cinzel', serif; color: var(--fog); font-size: 0.8rem; letter-spacing: 2px; margin-top: 4px; }
+
+/* ===== SESSION LOG ===== */
+.log-entry {
+  padding: 8px 12px;
+  border-left: 2px solid;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  background: rgba(0,0,0,0.2);
+}
+
+.log-entry.log-system { border-color: var(--fog-light); color: var(--fog-light); }
+.log-entry.log-combat { border-color: var(--ember); color: #f0a080; }
+.log-entry.log-soul { border-color: var(--soul-blue); color: var(--soul-glow); }
+.log-entry.log-rule { border-color: var(--red-death); color: #e05555; }
+.log-entry.log-discovery { border-color: var(--gold); color: var(--gold-light); }
+
+.log-time { font-family: 'Cinzel', serif; font-size: 0.65rem; color: var(--fog); letter-spacing: 1px; margin-right: 8px; }
+
+/* ===== VALIDATOR MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--ash-mid);
+  border: 1px solid var(--gold-dim);
+  max-width: 540px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(201,168,76,0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.1rem; letter-spacing: 1px; }
+.modal-close { background: none; border: none; color: var(--fog); cursor: pointer; font-size: 1.2rem; padding: 4px; }
+.modal-close:hover { color: var(--gold); }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid rgba(201,168,76,0.15); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ===== VALIDATOR VIOLATION ===== */
+.violation-box {
+  background: rgba(139,26,26,0.2);
+  border: 1px solid var(--red-death);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.violation-box h4 { color: #e05555; font-family: 'Cinzel', serif; font-size: 0.85rem; margin-bottom: 6px; letter-spacing: 1px; }
+.violation-box p { color: #c08080; font-size: 0.9rem; line-height: 1.5; }
+
+.success-box {
+  background: rgba(61,122,61,0.15);
+  border: 1px solid #3d7a3d;
+  padding: 16px;
+}
+
+.success-box h4 { color: #6fba6f; font-family: 'Cinzel', serif; font-size: 0.85rem; margin-bottom: 4px; }
+
+/* ===== DETAIL PANEL ===== */
+.detail-panel {
+  position: fixed;
+  right: 0; top: var(--header-h); bottom: 0;
+  width: 380px;
+  background: linear-gradient(180deg, var(--ash-mid), var(--ash-dark));
+  border-left: 1px solid var(--gold-dim);
+  z-index: 200;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.detail-panel.open { transform: translateX(0); }
+
+.detail-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(201,168,76,0.2);
+  position: sticky;
+  top: 0;
+  background: var(--ash-mid);
+  z-index: 1;
+}
+
+.detail-panel-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: none;
+  border: none;
+  color: var(--fog);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.detail-panel-body { padding: 20px; }
+.detail-lore {
+  font-style: italic;
+  color: var(--fog-light);
+  border-left: 2px solid var(--gold-dim);
+  padding-left: 12px;
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+
+/* ===== SOUL SYSTEM DISPLAY ===== */
+.soul-system-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 30px;
+  background: radial-gradient(ellipse at center, rgba(74,158,202,0.05) 0%, transparent 70%);
+  border: 1px solid rgba(74,158,202,0.1);
+  margin-bottom: 20px;
+}
+
+.soul-entity {
+  text-align: center;
+  padding: 16px;
+}
+
+.soul-entity-icon { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+.soul-entity-name { font-family: 'Cinzel', serif; color: var(--gold); font-size: 0.85rem; letter-spacing: 1px; }
+.soul-entity-desc { font-size: 0.8rem; color: var(--fog); margin-top: 4px; }
+
+.soul-connector {
+  font-size: 1.5rem;
+  color: var(--soul-glow);
+  opacity: 0.6;
+}
+
+/* ===== ALERT ===== */
+.alert {
+  padding: 12px 16px;
+  border: 1px solid;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.alert-warning { border-color: var(--ember); background: rgba(212,83,26,0.1); color: #f0a060; }
+.alert-info { border-color: var(--soul-blue); background: rgba(74,158,202,0.1); color: var(--soul-glow); }
+.alert-success { border-color: #3d7a3d; background: rgba(61,122,61,0.1); color: #6fba6f; }
+
+/* ===== STAT GRID ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.stat-box {
+  text-align: center;
+  padding: 10px 6px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(201,168,76,0.15);
+}
+
+.stat-box-value {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 1.4rem;
+  color: var(--gold);
+  display: block;
+}
+
+.stat-box-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.55rem;
+  color: var(--fog);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  display: block;
+  margin-top: 2px;
+}
+
+/* ===== ENCOUNTER BOX ===== */
+.encounter-box {
+  background: rgba(139,26,26,0.15);
+  border: 1px solid rgba(139,26,26,0.4);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.encounter-title {
+  font-family: 'Cinzel', serif;
+  color: #e05555;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+/* ===== SEPARATOR WITH RUNE ===== */
+.rune-sep {
+  text-align: center;
+  color: var(--gold-dim);
+  font-size: 0.8rem;
+  letter-spacing: 8px;
+  margin: 20px 0;
+  opacity: 0.6;
+}
+
+/* ===== FOGUEIRA / GRACE ===== */
+.grace-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-family: 'Cinzel', serif;
+  color: var(--gold);
+}
+
+.grace-flame {
+  animation: flicker 1.5s infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.95); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  :root { --sidebar-w: 200px; }
+  .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div>
+      <div class="header-title">✦ FOUR PILAR ✦</div>
+      <div class="header-subtitle">Eldria não morreu. Ela espera.</div>
+    </div>
+    <div class="header-rune">⚜</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="grace-indicator">
+        <span class="grace-flame">🔥</span>
+        <span id="session-timer">00:00:00</span>
+      </div>
+      <button class="btn btn-sm" onclick="openModal('validate-modal')">⚖ Validar Ação</button>
+    </div>
+  </header>
+
+  <div id="main">
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+      <div class="nav-section">
+        <div class="nav-label">Mundo</div>
+        <button class="nav-btn active" data-page="map"><span class="nav-icon">🗺</span> Mapa de Eldria</button>
+        <button class="nav-btn" data-page="regions"><span class="nav-icon">🏰</span> Regiões & Locais</button>
+        <button class="nav-btn" data-page="npcs"><span class="nav-icon">👥</span> NPCs</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Jogadores</div>
+        <button class="nav-btn" data-page="players"><span class="nav-icon">⚔</span> Jogadores</button>
+        <button class="nav-btn" data-page="soul-system"><span class="nav-icon">👻</span> Sistema de Alma</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Sistema</div>
+        <button class="nav-btn" data-page="rulebook"><span class="nav-icon">📜</span> Codex de Regras</button>
+        <button class="nav-btn" data-page="gm-tools"><span class="nav-icon">🎲</span> Ferramentas do GM</button>
+        <button class="nav-btn" data-page="session-log"><span class="nav-icon">📋</span> Log de Sessão</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Admin</div>
+        <button class="nav-btn" data-page="admin"><span class="nav-icon">⚙</span> Painel Admin</button>
+      </div>
+
+      <!-- Mini log rápido no sidebar -->
+      <div style="padding:12px;margin-top:auto;border-top:1px solid rgba(201,168,76,0.1);">
+        <div style="font-family:'Cinzel',serif;font-size:0.6rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:8px;">ÚLTIMO EVENTO</div>
+        <div id="last-event" style="font-size:0.8rem;color:var(--fog-light);font-style:italic;line-height:1.4;">Sessão iniciada...</div>
+      </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <main id="content">
+
+      <!-- ===== MAP PAGE ===== -->
+      <div id="page-map" class="page active">
+        <div id="map-container" style="height:calc(100vh - var(--header-h));">
+          <svg id="world-map" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+            <!-- Background -->
+            <defs>
+              <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#1a1208"/>
+                <stop offset="100%" style="stop-color:#060402"/>
+              </radialGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="soulGlow">
+                <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <radialGradient id="ashenGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#4a3a2a"/>
+                <stop offset="100%" style="stop-color:#2a1e10"/>
+              </radialGradient>
+              <radialGradient id="dreadGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#2a2a3a"/>
+                <stop offset="100%" style="stop-color:#10101a"/>
+              </radialGradient>
+              <radialGradient id="charGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#1a3a1a"/>
+                <stop offset="100%" style="stop-color:#0a1a0a"/>
+              </radialGradient>
+              <radialGradient id="erynGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#3a2a1a"/>
+                <stop offset="100%" style="stop-color:#1a1008"/>
+              </radialGradient>
+              <radialGradient id="ironGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#3a1a1a"/>
+                <stop offset="100%" style="stop-color:#1a0808"/>
+              </radialGradient>
+              <radialGradient id="skornGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#2a2a3a"/>
+                <stop offset="100%" style="stop-color:#0a0a14"/>
+              </radialGradient>
+              <radialGradient id="veloriaGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#2a1a3a"/>
+                <stop offset="100%" style="stop-color:#10081a"/>
+              </radialGradient>
+              <radialGradient id="ashgraveGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#2a2a2a"/>
+                <stop offset="100%" style="stop-color:#101010"/>
+              </radialGradient>
+            </defs>
+
+            <rect width="900" height="600" fill="url(#bgGrad)"/>
+
+            <!-- Grid lines (faint) -->
+            <g opacity="0.05" stroke="#c9a84c" stroke-width="0.5">
+              <line x1="0" y1="150" x2="900" y2="150"/>
+              <line x1="0" y1="300" x2="900" y2="300"/>
+              <line x1="0" y1="450" x2="900" y2="450"/>
+              <line x1="225" y1="0" x2="225" y2="600"/>
+              <line x1="450" y1="0" x2="450" y2="600"/>
+              <line x1="675" y1="0" x2="675" y2="600"/>
+            </g>
+
+            <!-- ASHEN (center-left) -->
+            <g class="map-region" data-region="ashen" onclick="openRegion('ashen')">
+              <ellipse cx="200" cy="270" rx="120" ry="90" fill="url(#ashenGrad)" stroke="#7a5a30" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="200" cy="270" rx="120" ry="90" fill="none" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+              <!-- Flame icon -->
+              <text x="200" y="265" text-anchor="middle" font-size="24" opacity="0.7">🔥</text>
+              <text class="map-label" x="200" y="295" font-size="13" fill="#e8c97a">ASHEN</text>
+              <text class="map-label" x="200" y="310" font-size="8" fill="#8a7d6a">Reino das Cinzas</text>
+            </g>
+
+            <!-- DREAD CASTLE (top-left) -->
+            <g class="map-region" data-region="dread" onclick="openRegion('dread')">
+              <ellipse cx="130" cy="130" rx="90" ry="70" fill="url(#dreadGrad)" stroke="#4a4a6a" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="130" cy="130" rx="90" ry="70" fill="none" stroke="#8080c0" stroke-width="0.5" opacity="0.3"/>
+              <text x="130" y="125" text-anchor="middle" font-size="20" opacity="0.7">⚡</text>
+              <text class="map-label" x="130" y="150" font-size="11" fill="#a0a0e0">DREAD CASTLE</text>
+              <text class="map-label" x="130" y="163" font-size="8" fill="#6a6a8a">Fortaleza da Tempestade</text>
+            </g>
+
+            <!-- CHARROOT (bottom-left) -->
+            <g class="map-region" data-region="charroot" onclick="openRegion('charroot')">
+              <ellipse cx="160" cy="470" rx="100" ry="80" fill="url(#charGrad)" stroke="#2a5a2a" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="160" cy="470" rx="100" ry="80" fill="none" stroke="#4a8a4a" stroke-width="0.5" opacity="0.3"/>
+              <text x="160" y="465" text-anchor="middle" font-size="22" opacity="0.7">🌿</text>
+              <text class="map-label" x="160" y="488" font-size="12" fill="#7aba7a">CHARROOT</text>
+              <text class="map-label" x="160" y="501" font-size="8" fill="#4a7a4a">Terra das Raízes</text>
+            </g>
+
+            <!-- ERYNDOR (center) -->
+            <g class="map-region" data-region="eryndor" onclick="openRegion('eryndor')">
+              <ellipse cx="430" cy="220" rx="110" ry="85" fill="url(#erynGrad)" stroke="#7a5a2a" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="430" cy="220" rx="110" ry="85" fill="none" stroke="#c9a030" stroke-width="0.5" opacity="0.3"/>
+              <text x="430" y="213" text-anchor="middle" font-size="22" opacity="0.7">⚔</text>
+              <text class="map-label" x="430" y="238" font-size="13" fill="#e0c070">ERYNDOR</text>
+              <text class="map-label" x="430" y="251" font-size="8" fill="#8a7040">Reino do Juramento</text>
+            </g>
+
+            <!-- IRONSCAR (bottom-center) -->
+            <g class="map-region" data-region="ironscar" onclick="openRegion('ironscar')">
+              <ellipse cx="420" cy="470" rx="105" ry="80" fill="url(#ironGrad)" stroke="#5a1a1a" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="420" cy="470" rx="105" ry="80" fill="none" stroke="#8a3030" stroke-width="0.5" opacity="0.3"/>
+              <text x="420" y="463" text-anchor="middle" font-size="22" opacity="0.7">🏔</text>
+              <text class="map-label" x="420" y="487" font-size="12" fill="#e07070">IRONSCAR</text>
+              <text class="map-label" x="420" y="500" font-size="8" fill="#8a4040">Terra da Praga</text>
+            </g>
+
+            <!-- SKORN (top-right) -->
+            <g class="map-region" data-region="skorn" onclick="openRegion('skorn')">
+              <ellipse cx="700" cy="130" rx="110" ry="80" fill="url(#skornGrad)" stroke="#3a3a5a" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="700" cy="130" rx="110" ry="80" fill="none" stroke="#6060a0" stroke-width="0.5" opacity="0.3"/>
+              <text x="700" y="123" text-anchor="middle" font-size="22" opacity="0.7">🌫</text>
+              <text class="map-label" x="700" y="147" font-size="12" fill="#a0a0d0">SKORN</text>
+              <text class="map-label" x="700" y="160" font-size="8" fill="#6060a0">Campos do Silêncio</text>
+            </g>
+
+            <!-- VELORIA (center-right) -->
+            <g class="map-region" data-region="veloria" onclick="openRegion('veloria')">
+              <ellipse cx="700" cy="310" rx="115" ry="90" fill="url(#veloriaGrad)" stroke="#4a2a5a" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="700" cy="310" rx="115" ry="90" fill="none" stroke="#8050b0" stroke-width="0.5" opacity="0.3"/>
+              <text x="700" y="303" text-anchor="middle" font-size="22" opacity="0.7">🌀</text>
+              <text class="map-label" x="700" y="328" font-size="13" fill="#c090e0">VELORIA</text>
+              <text class="map-label" x="700" y="341" font-size="8" fill="#7050a0">Domínio Arcano</text>
+            </g>
+
+            <!-- ASHGRAVE (bottom-right) -->
+            <g class="map-region" data-region="ashgrave" onclick="openRegion('ashgrave')">
+              <ellipse cx="720" cy="490" rx="100" ry="75" fill="url(#ashgraveGrad)" stroke="#4a4a4a" stroke-width="1.5" opacity="0.9"/>
+              <ellipse cx="720" cy="490" rx="100" ry="75" fill="none" stroke="#808080" stroke-width="0.5" opacity="0.3"/>
+              <text x="720" y="483" text-anchor="middle" font-size="22" opacity="0.7">🕯</text>
+              <text class="map-label" x="720" y="507" font-size="12" fill="#b0b0b0">ASHGRAVE</text>
+              <text class="map-label" x="720" y="520" font-size="8" fill="#707070">Sede do Poder</text>
+            </g>
+
+            <!-- NEUTRAL ZONE (Sanctuary) -->
+            <g class="map-region" data-region="neutral" onclick="openRegion('neutral')">
+              <ellipse cx="430" cy="360" rx="55" ry="45" fill="rgba(201,168,76,0.06)" stroke="#c9a84c" stroke-width="1" stroke-dasharray="4,3" opacity="0.8"/>
+              <text x="430" y="353" text-anchor="middle" font-size="16" opacity="0.8">💨</text>
+              <text class="map-label" x="430" y="373" font-size="9" fill="#c9a84c">ZONA NEUTRA</text>
+              <text class="map-label" x="430" y="384" font-size="7" fill="#7a6030">Santuário</text>
+            </g>
+
+            <!-- Roads/connections -->
+            <g stroke="#4a3a20" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.5" fill="none">
+              <path d="M 290 270 Q 360 250 340 220"/>
+              <path d="M 200 200 Q 165 165 190 145"/>
+              <path d="M 200 340 Q 175 400 195 410"/>
+              <path d="M 430 295 Q 430 340 430 320"/>
+              <path d="M 540 230 Q 620 200 615 155"/>
+              <path d="M 610 310 Q 650 310 600 310"/>
+              <path d="M 700 190 Q 700 240 700 240"/>
+              <path d="M 670 390 Q 700 430 700 430"/>
+              <path d="M 520 460 Q 600 470 635 475"/>
+            </g>
+
+            <!-- Compass rose -->
+            <g transform="translate(840,50)" opacity="0.6">
+              <circle r="20" fill="none" stroke="#c9a84c" stroke-width="0.8"/>
+              <text x="0" y="-25" text-anchor="middle" font-size="10" fill="#c9a84c" font-family="Cinzel,serif">N</text>
+              <text x="25" y="4" text-anchor="middle" font-size="8" fill="#7a6030">L</text>
+              <text x="-25" y="4" text-anchor="middle" font-size="8" fill="#7a6030">O</text>
+              <text x="0" y="32" text-anchor="middle" font-size="8" fill="#7a6030">S</text>
+              <line x1="0" y1="-18" x2="0" y2="-5" stroke="#c9a84c" stroke-width="1.5"/>
+              <line x1="0" y1="5" x2="0" y2="18" stroke="#7a6030" stroke-width="1"/>
+              <line x1="-18" y1="0" x2="18" y2="0" stroke="#7a6030" stroke-width="1"/>
+            </g>
+
+            <!-- Title -->
+            <text x="450" y="30" text-anchor="middle" font-family="Cinzel Decorative, serif" font-size="16" fill="#c9a84c" filter="url(#glow)" opacity="0.8">ELDRIA</text>
+            <text x="450" y="48" text-anchor="middle" font-family="Cinzel, serif" font-size="9" fill="#7a6030" letter-spacing="5">MAPA DO MUNDO</text>
+
+            <!-- Player tokens layer (will be populated by JS) -->
+            <g id="player-tokens-layer"></g>
+          </svg>
+
+          <!-- Map controls -->
+          <div style="position:absolute;bottom:20px;right:20px;display:flex;flex-direction:column;gap:6px;">
+            <button class="btn btn-sm" onclick="showPage('players')">👤 Mover Jogadores</button>
+            <button class="btn btn-sm btn-soul" onclick="showPage('soul-system')">👻 Sistema de Alma</button>
+          </div>
+
+          <div style="position:absolute;bottom:20px;left:20px;font-family:'Cinzel',serif;font-size:0.65rem;color:var(--gold-dim);letter-spacing:1px;">
+            Clique nas regiões para ver detalhes
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== REGIONS PAGE ===== -->
+      <div id="page-regions" class="page">
+        <div class="page-header">
+          <h2>Regiões & Locais</h2>
+          <p>Os reinos de Eldria e seus pontos de interesse</p>
+        </div>
+        <div class="page-body">
+          <div class="grid-2" id="regions-grid"></div>
+        </div>
+      </div>
+
+      <!-- ===== NPCS PAGE ===== -->
+      <div id="page-npcs" class="page">
+        <div class="page-header">
+          <h2>Índice de NPCs</h2>
+          <p>Personagens do mundo de Eldria</p>
+        </div>
+        <div class="page-body">
+          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-primary" onclick="filterNPCs('all')">Todos</button>
+            <button class="btn btn-sm" onclick="filterNPCs('aliado')">Aliados</button>
+            <button class="btn btn-sm" onclick="filterNPCs('neutro')">Neutros</button>
+            <button class="btn btn-sm" onclick="filterNPCs('antagonista')">Antagonistas</button>
+          </div>
+          <div class="grid-3" id="npcs-grid"></div>
+        </div>
+      </div>
+
+      <!-- ===== PLAYERS PAGE ===== -->
+      <div id="page-players" class="page">
+        <div class="page-header">
+          <h2>Jogadores</h2>
+          <p>Gerenciar personagens e suas almas</p>
+          <div style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="openModal('add-player-modal')">+ Adicionar Jogador</button>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="grid-3" id="players-grid">
+            <div style="color:var(--fog);font-style:italic;grid-column:1/-1;text-align:center;padding:40px;">Nenhum jogador adicionado ainda. Clique em "Adicionar Jogador".</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SOUL SYSTEM PAGE ===== -->
+      <div id="page-soul-system" class="page">
+        <div class="page-header">
+          <h2>Sistema de Alma</h2>
+          <p>Corpo e Alma — um ser, dois indivíduos</p>
+        </div>
+        <div class="page-body">
+
+          <div class="soul-system-diagram">
+            <div class="soul-entity">
+              <span class="soul-entity-icon">⚔</span>
+              <div class="soul-entity-name">O CORPO</div>
+              <div class="soul-entity-desc">Age no plano físico<br>Armas, força, presença</div>
+            </div>
+            <div class="soul-connector">⟷</div>
+            <div style="text-align:center;">
+              <div style="font-family:'Cinzel Decorative',serif;color:var(--gold);font-size:1rem;letter-spacing:2px;">UM SER</div>
+              <div style="font-size:2rem;margin:8px 0;">✦</div>
+              <div style="font-family:'Cinzel',serif;color:var(--fog);font-size:0.75rem;letter-spacing:1px;">DOIS INDIVÍDUOS</div>
+            </div>
+            <div class="soul-connector">⟷</div>
+            <div class="soul-entity">
+              <span class="soul-entity-icon" style="filter:drop-shadow(0 0 8px #4a9eca)">👻</span>
+              <div class="soul-entity-name" style="color:var(--soul-glow)">A ALMA</div>
+              <div class="soul-entity-desc">Age no plano espiritual<br>Poderes únicos, memória</div>
+            </div>
+          </div>
+
+          <!-- States -->
+          <div class="grid-3" style="margin-bottom:24px;">
+            <div class="card" style="border-color:rgba(61,122,61,0.4);">
+              <div style="font-size:2rem;margin-bottom:8px;">🟢</div>
+              <div class="card-title" style="color:#6fba6f;">VIVO</div>
+              <p style="font-size:0.85rem;color:var(--fog-light);line-height:1.6;">Corpo + Alma unidos. Acesso total a todas as habilidades. Estado normal de funcionamento.</p>
+            </div>
+            <div class="card" style="border-color:rgba(74,158,202,0.4);">
+              <div style="font-size:2rem;margin-bottom:8px;">👻</div>
+              <div class="card-title" style="color:var(--soul-glow);">ALMA ERRANTE</div>
+              <p style="font-size:0.85rem;color:var(--fog-light);line-height:1.6;">Corpo morto. A alma persiste e pode agir com poderes limitados por classe até ressurreição.</p>
+            </div>
+            <div class="card" style="border-color:rgba(139,26,26,0.4);">
+              <div style="font-size:2rem;margin-bottom:8px;">💀</div>
+              <div class="card-title" style="color:#e05555;">PERDIDO</div>
+              <p style="font-size:0.85rem;color:var(--fog-light);line-height:1.6;">Alma destruída ou corrompida. Morte permanente. Não há retorno sem intervenção divina.</p>
+            </div>
+          </div>
+
+          <!-- Soul abilities by class -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-title">Poderes de Alma por Classe</div>
+            <div id="soul-class-abilities"></div>
+          </div>
+
+          <!-- Resurrection -->
+          <div class="card">
+            <div class="card-title">Caminhos de Ressurreição</div>
+            <div class="grid-2">
+              <div class="rule-item">
+                <div class="rule-item-title">🔥 Fogueira / Graça</div>
+                <div class="rule-item-desc">Ressurreição automática ao alcançar uma fogueira ativa. A alma retorna ao corpo instantaneamente. Inimigos da área reaparecem.</div>
+              </div>
+              <div class="rule-item">
+                <div class="rule-item-title">🤝 Ritual de Aliados</div>
+                <div class="rule-item-desc">Aliados vivos podem invocar a alma errante. Custo: 1 item de consumível raro por aliado participante (mínimo 2). Leva 3 rodadas.</div>
+              </div>
+              <div class="rule-item" style="border-color:rgba(139,26,26,0.3);">
+                <div class="rule-item-title" style="color:#c07070;">☠ Pacto Sombrio</div>
+                <div class="rule-item-desc">Ressurreição imediata com custo: -10 de HP máximo permanente ou corrompimento de 1 atributo. Requer fonte de poder sombrio.</div>
+              </div>
+              <div class="rule-item" style="border-color:rgba(201,168,76,0.3);">
+                <div class="rule-item-title">⚔ Intervenção do Mestre</div>
+                <div class="rule-item-desc">O GM pode, em circunstâncias narrativas excepcionais, conceder retorno. Deve ser registrado no log com justificativa.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===== RULEBOOK PAGE ===== -->
+      <div id="page-rulebook" class="page">
+        <div class="page-header">
+          <h2>Codex de Regras</h2>
+          <p>As leis fundamentais de Eldria — não podem ser quebradas sem consequência</p>
+        </div>
+        <div class="page-body">
+
+          <div class="alert alert-warning">
+            ⚖ As regras fundamentais são validadas automaticamente pelo sistema. Infrações são registradas no Log de Sessão.
+          </div>
+
+          <div id="rulebook-content"></div>
+
+        </div>
+      </div>
+
+      <!-- ===== GM TOOLS PAGE ===== -->
+      <div id="page-gm-tools" class="page">
+        <div class="page-header">
+          <h2>Ferramentas do Mestre</h2>
+          <p>Controle total da sessão</p>
+        </div>
+        <div class="page-body">
+
+          <!-- Dice -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-title">⚄ Dados</div>
+            <div class="dice-area">
+              <button class="dice-btn" onclick="rollDice(4)"><span class="dice-icon">◇</span>d4</button>
+              <button class="dice-btn" onclick="rollDice(6)"><span class="dice-icon">⬡</span>d6</button>
+              <button class="dice-btn" onclick="rollDice(8)"><span class="dice-icon">◈</span>d8</button>
+              <button class="dice-btn" onclick="rollDice(10)"><span class="dice-icon">⬟</span>d10</button>
+              <button class="dice-btn" onclick="rollDice(12)"><span class="dice-icon">◎</span>d12</button>
+              <button class="dice-btn" onclick="rollDice(20)"><span class="dice-icon">✦</span>d20</button>
+              <button class="dice-btn" onclick="rollDice(100)"><span class="dice-icon">⊕</span>d100</button>
+            </div>
+            <div class="dice-result" id="dice-result">
+              <div style="color:var(--fog);font-family:'Cinzel',serif;font-size:0.85rem;letter-spacing:2px;">Role um dado</div>
+            </div>
+          </div>
+
+          <!-- Region Control -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-title">🗺 Controle de Regiões</div>
+            <div style="display:flex;flex-direction:column;gap:8px;" id="region-control"></div>
+          </div>
+
+          <!-- Encounter Starter -->
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-title">⚔ Iniciar Encontro</div>
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div class="form-group">
+                <label>Tipo de Encontro</label>
+                <select id="encounter-type">
+                  <option>Inimigos comuns</option>
+                  <option>Elite inimiga</option>
+                  <option>Boss</option>
+                  <option>Emboscada</option>
+                  <option>Evento de alma</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Região</label>
+                <select id="encounter-region">
+                  <option>Ashen</option>
+                  <option>Dread Castle</option>
+                  <option>Charroot</option>
+                  <option>Eryndor</option>
+                  <option>Ironscar</option>
+                  <option>Skorn</option>
+                  <option>Veloria</option>
+                  <option>Ashgrave</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-danger" onclick="startEncounter()">⚔ Iniciar Encontro</button>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="card">
+            <div class="card-title">⚡ Ações Rápidas</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button class="btn btn-sm" onclick="addLog('discovery','O GM revelou uma nova área do mapa.')">🗺 Revelar Área</button>
+              <button class="btn btn-sm btn-soul" onclick="triggerSoulEvent()">👻 Evento de Alma</button>
+              <button class="btn btn-sm" onclick="addLog('system','GM: Fogueira acesa. Todos os jogadores podem descansar.')">🔥 Acender Fogueira</button>
+              <button class="btn btn-sm btn-danger" onclick="addLog('combat','ALERTA DO MESTRE: Perigo iminente na área!')">⚠ Alerta de Perigo</button>
+              <button class="btn btn-sm" onclick="openModal('message-modal')">📜 Enviar Lore</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===== SESSION LOG PAGE ===== -->
+      <div id="page-session-log" class="page">
+        <div class="page-header">
+          <h2>Log de Sessão</h2>
+          <p>Histórico completo dos eventos</p>
+          <div style="margin-top:12px;display:flex;gap:8px;">
+            <button class="btn btn-sm" onclick="clearLog()">🗑 Limpar</button>
+            <button class="btn btn-sm btn-primary" onclick="exportLog()">📤 Exportar</button>
+          </div>
+        </div>
+        <div class="page-body">
+          <div id="session-log-entries"></div>
+        </div>
+      </div>
+
+      <!-- ===== ADMIN PAGE ===== -->
+      <div id="page-admin" class="page">
+        <div class="page-header">
+          <h2>Painel Admin</h2>
+          <p>Gerenciamento do sistema</p>
+        </div>
+        <div class="page-body">
+
+          <div class="alert alert-info">
+            ⚙ Alterações feitas aqui afetam o sistema em tempo real. Infrações de regra são sempre logadas.
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">📊 Status do Sistema</div>
+              <div style="font-size:0.9rem;color:var(--fog-light);">
+                <div style="margin-bottom:8px;display:flex;justify-content:space-between;"><span>Jogadores ativos:</span><span style="color:var(--gold);" id="admin-player-count">0</span></div>
+                <div style="margin-bottom:8px;display:flex;justify-content:space-between;"><span>Almas errantes:</span><span style="color:var(--soul-glow);" id="admin-soul-count">0</span></div>
+                <div style="margin-bottom:8px;display:flex;justify-content:space-between;"><span>Eventos no log:</span><span style="color:var(--gold);" id="admin-log-count">0</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Regiões reveladas:</span><span style="color:var(--gold);" id="admin-region-count">8/8</span></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">⚖ Infração de Regras</div>
+              <div id="admin-violations" style="font-size:0.85rem;color:var(--fog);">Nenhuma infração registrada.</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <div class="card-title">🔧 Configurações da Campanha</div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Nome da Campanha</label>
+                <input type="text" value="Four Pilar — A Busca pelos Pilares" id="campaign-name"/>
+              </div>
+              <div class="form-group">
+                <label>Número da Sessão</label>
+                <input type="number" value="1" id="session-number"/>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()">Salvar Configurações</button>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===== DETAIL PANEL ===== -->
+<div id="detail-panel" class="detail-panel">
+  <div class="detail-panel-header">
+    <button class="detail-panel-close" onclick="closeDetailPanel()">✕</button>
+    <div id="detail-panel-title" style="font-family:'Cinzel',serif;color:var(--gold);font-size:1.1rem;"></div>
+    <div id="detail-panel-subtitle" style="font-size:0.8rem;color:var(--fog);margin-top:2px;font-style:italic;"></div>
+  </div>
+  <div class="detail-panel-body" id="detail-panel-body"></div>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Add Player Modal -->
+<div id="add-player-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal('add-player-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Adicionar Jogador</div>
+      <button class="modal-close" onclick="closeModal('add-player-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nome do Personagem</label>
+        <input type="text" id="new-player-name" placeholder="Ex: Aldric, o Cinzeiro"/>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Classe</label>
+          <select id="new-player-class">
+            <option value="guerreiro">⚔ Guerreiro</option>
+            <option value="mago">🔮 Mago</option>
+            <option value="clerigo">🙏 Clérigo</option>
+            <option value="assassino">🗡 Assassino</option>
+            <option value="druida">🌿 Druida</option>
+            <option value="paladino">🛡 Paladino</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nível</label>
+          <input type="number" id="new-player-level" value="1" min="1" max="20"/>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>HP Máximo</label>
+          <input type="number" id="new-player-hp" value="100" min="10" max="999"/>
+        </div>
+        <div class="form-group">
+          <label>Região Atual</label>
+          <select id="new-player-region">
+            <option value="ashen">Ashen</option>
+            <option value="dread">Dread Castle</option>
+            <option value="charroot">Charroot</option>
+            <option value="eryndor">Eryndor</option>
+            <option value="ironscar">Ironscar</option>
+            <option value="skorn">Skorn</option>
+            <option value="veloria">Veloria</option>
+            <option value="ashgrave">Ashgrave</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label>Vigor</label>
+          <input type="number" id="new-player-vigor" value="10" min="1" max="99"/>
+        </div>
+        <div class="form-group">
+          <label>Destreza</label>
+          <input type="number" id="new-player-dex" value="10" min="1" max="99"/>
+        </div>
+        <div class="form-group">
+          <label>Fé</label>
+          <input type="number" id="new-player-faith" value="10" min="1" max="99"/>
+        </div>
+        <div class="form-group">
+          <label>Força</label>
+          <input type="number" id="new-player-str" value="10" min="1" max="99"/>
+        </div>
+        <div class="form-group">
+          <label>Intelecto</label>
+          <input type="number" id="new-player-int" value="10" min="1" max="99"/>
+        </div>
+        <div class="form-group">
+          <label>Arcano</label>
+          <input type="number" id="new-player-arc" value="10" min="1" max="99"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Foto / Avatar (URL ou emoji)</label>
+        <input type="text" id="new-player-avatar" placeholder="URL de imagem ou deixe em branco para emoji"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('add-player-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addPlayer()">Adicionar Jogador</button>
+    </div>
+  </div>
+</div>
+
+<!-- Validate Action Modal -->
+<div id="validate-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal('validate-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">⚖ Validar Ação</div>
+      <button class="modal-close" onclick="closeModal('validate-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Jogador / NPC</label>
+        <select id="validate-player">
+          <option value="">-- Selecionar --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Descreva a Ação</label>
+        <textarea id="validate-action" rows="3" placeholder="Ex: Meu personagem (alma errante) tenta atacar fisicamente um inimigo..."></textarea>
+      </div>
+      <div id="validate-result" style="display:none;margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('validate-modal')">Fechar</button>
+      <button class="btn btn-primary" onclick="validateAction()">⚖ Validar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Message / Lore Modal -->
+<div id="message-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal('message-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📜 Enviar Lore aos Jogadores</div>
+      <button class="modal-close" onclick="closeModal('message-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Mensagem Narrativa</label>
+        <textarea id="lore-message" rows="5" placeholder="O vento sussurra entre as pedras cinzas de Eldria..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('message-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="sendLore()">📜 Enviar ao Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- Player Detail Modal -->
+<div id="player-detail-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal('player-detail-modal')">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="player-detail-name">Jogador</div>
+      <button class="modal-close" onclick="closeModal('player-detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="player-detail-body"></div>
+    <div class="modal-footer" id="player-detail-footer"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const REGIONS = {
+  ashen: {
+    name: "Ashen",
+    icon: "🔥",
+    color: "#c9a84c",
+    theme: "rgba(74,58,42,0.4)",
+    subtitle: "Reino das Cinzas Eternas",
+    lore: "Ashen foi varrida pela corrupção de Seraphion durante a Primeira Queda das Cinzas. O que resta é beleza cadavérica — pedra negra que sobreviveu ao fogo, cinzas que guardam memórias dos mortos, e alguns poucos habitantes que se recusaram a partir.",
+    npcs: ["Aldric, o Ferreiro das Cinzas", "Vessa, a Coletora"],
+    locations: ["Forja das Cinzas Eternas"],
+    status: "revelada",
+    danger: "Médio",
+    theme_tag: "Sobrevivência, Memória, Cinzas"
+  },
+  dread: {
+    name: "Dread Castle",
+    icon: "⚡",
+    color: "#a0a0e0",
+    theme: "rgba(42,42,58,0.4)",
+    subtitle: "Fortaleza da Tempestade",
+    lore: "Governada com punho de ferro pelo Rei Tempestuoso Vaelor, Dread Castle é uma fortaleza onde o poder é medido pela força das muralhas e pela lealdade que compra. Desertar é o único ato de liberdade que seus habitantes conhecem.",
+    npcs: ["Brenna Salthar, a Tempestade Desertora"],
+    locations: ["Taverna da Tempestade Partida"],
+    status: "revelada",
+    danger: "Alto",
+    theme_tag: "Poder, Traição, Tempestade"
+  },
+  charroot: {
+    name: "Charroot",
+    icon: "🌿",
+    color: "#7aba7a",
+    theme: "rgba(26,58,26,0.4)",
+    subtitle: "Terra das Raízes Profundas",
+    lore: "Charroot é um reino vivo — literalmente. As raízes da terra crescem através das ruas, das casas, das pessoas. O Clero da Seiva Negra prega que isso é bênção. Os corpos integrados às fundações do Templo sugerem outra coisa.",
+    npcs: ["Oryn Telvax, o Raiz Dupla"],
+    locations: ["Templo da Seiva Negra", "Mercado de Varn Hollow"],
+    status: "revelada",
+    danger: "Alto",
+    theme_tag: "Transformação, Doutrina, Raízes"
+  },
+  eryndor: {
+    name: "Eryndor",
+    icon: "⚔",
+    color: "#e0c070",
+    theme: "rgba(58,42,26,0.4)",
+    subtitle: "Reino do Juramento Antigo",
+    lore: "Eryndor foi fundado sobre Sete Juramentos — princípios, não deuses. Com a ascensão de Aurelion, o Soberano Imortal, a maioria esqueceu esses votos. Sael, a última guardiã, ainda os lembra.",
+    npcs: ["Sael, a Guardiã do Juramento Eterno"],
+    locations: ["Catedral do Juramento Eterno"],
+    status: "revelada",
+    danger: "Médio",
+    theme_tag: "Honra, Juramento, Corrupção"
+  },
+  ironscar: {
+    name: "Ironscar",
+    icon: "🏔",
+    color: "#e07070",
+    theme: "rgba(58,26,26,0.4)",
+    subtitle: "Terra Marcada pela Praga",
+    lore: "A praga de Morghast não nasceu naturalmente — foi criada. Ironscar carrega essa cicatriz em cada habitante que sobreviveu. Mira Halvik sabe a verdade. O Clero da Seiva Negra também.",
+    npcs: ["Mira Halvik, a Doutora da Praga"],
+    locations: ["Posto Esquecido de Halvik"],
+    status: "revelada",
+    danger: "Extremo",
+    theme_tag: "Praga, Ciência, Segredos"
+  },
+  skorn: {
+    name: "Skorn",
+    icon: "🌫",
+    color: "#a0a0d0",
+    theme: "rgba(42,42,58,0.4)",
+    subtitle: "Campos do Silêncio Branco",
+    lore: "Skorn é o reino do esquecimento. A neve cobre tudo. O silêncio apaga tudo. E nas fronteiras entre o que é lembrado e o que foi perdido, Dross o Andarilho Perdido caminha — ele próprio um sobrevivente de algo anterior.",
+    npcs: ["Dross, o Andarilho Perdido"],
+    locations: ["Campos do Silêncio Branco"],
+    status: "revelada",
+    danger: "Desconhecido",
+    theme_tag: "Memória, Ciclos, Silêncio"
+  },
+  veloria: {
+    name: "Veloria",
+    icon: "🌀",
+    color: "#c090e0",
+    theme: "rgba(42,26,58,0.4)",
+    subtitle: "Domínio Arcano de Luthyra",
+    lore: "Veloria é onde a magia tem lei. Luthyra, Matriarca Arcana, define o que pode e não pode ser praticado. Kaelthas descobriu que essas leis existem para protegê-la, não a Veloria. Custou-lhe metade do rosto.",
+    npcs: ["Kaelthas Morveth, o Véu Partido"],
+    locations: ["Torre dos Véus Partidos"],
+    status: "revelada",
+    danger: "Arcano",
+    theme_tag: "Magia, Proibição, Dimensões"
+  },
+  ashgrave: {
+    name: "Ashgrave",
+    icon: "🕯",
+    color: "#b0b0b0",
+    theme: "rgba(42,42,42,0.4)",
+    subtitle: "Sede do Círculo Cinzento",
+    lore: "Ashgrave não governa por força — governa por burocracia. O Círculo Cinzento, liderado por Theron Ashgrave, controla o fluxo de informação entre reinos. O poder real nunca senta em tronos. Senta em comitês.",
+    npcs: ["Theron Ashgrave, o Arquiteto Cinzento"],
+    locations: ["Salão dos Cinzentes"],
+    status: "revelada",
+    danger: "Político",
+    theme_tag: "Política, Controle, Burocracia"
+  },
+  neutral: {
+    name: "Zona Neutra",
+    icon: "💨",
+    color: "#c9a84c",
+    theme: "rgba(42,38,28,0.4)",
+    subtitle: "Santuário do Vento Perdido",
+    lore: "O vento não pertence a ninguém. Por isso este lugar pertence a todos. Irmã Tova administra o único local em Eldria onde inimigos podem coexistir sem violência — e onde segredos são guardados mesmo sob tortura.",
+    npcs: ["Irmã Tova"],
+    locations: ["Santuário do Vento Perdido"],
+    status: "revelada",
+    danger: "Nenhum",
+    theme_tag: "Neutralidade, Segredos, Vento"
+  }
+};
+
+const NPCS = [
+  { id: "aldric", name: "Aldric, o Ferreiro das Cinzas", role: "Ferreiro / Aliado", region: "Ashen", alignment: "aliado", icon: "🔨", color: "#c9a84c", secret: "Guarda uma espada inacabada no porão da forja. A lâmina recusa ser completada.", lore: '"O fogo nunca apaga de verdade. Ele apenas espera nas cinzas."', services: ["Forjar arma básica — 50 Cinzas", "Melhorar arma (+1) — 1x Ferrita de Cinza", "Reparar equipamento — 20 Cinzas", "Identificar relíquia — Grátis (se aliado)"], hooks: ["A Última Forja — Minério especial nas profundezas de Ashen", "O Aprendiz Perdido — Vessa desapareceu nas ruínas"] },
+  { id: "vessa", name: "Vessa, a Coletora", role: "Aprendiz / Mistério", region: "Ashen", alignment: "aliado", icon: "🔥", color: "#e87a40", secret: "Sendo observada pelo Conclave dos Sussurros. Seus olhos dourados surgiram após tocar a Essência das Cinzas de Seraphion.", lore: '"As cinzas guardam memórias. Eu apenas as ouço."', services: ["Leitura de Cinzas (1x/sessão) — rola 1d20 ao tocar relíquia"], hooks: ["O Brilho que Não Apaga — olhos brilhando incontrolavelmente", "Memórias Roubadas — presa em uma visão"] },
+  { id: "brenna", name: "Brenna Salthar, a Tempestade Desertora", role: "Mercenária / Ex-Sentinela", region: "Dread Castle", alignment: "aliado", icon: "⚡", color: "#a0a0e0", secret: "Sabe exatamente como Vaelor pensa. Há um preço em sua cabeça. Ela não está escondida.", lore: '"Servi ao Rei Tempestuoso por doze anos. No décimo terceiro, percebi que a tempestade nunca foi dele."', services: ["Aliada de combate (HP 85, ATK +7)", "Guia nas muralhas de Dread Castle", "Intel sobre estrutura interna do castelo"], hooks: ["O Preço na Cabeça — caçadores de recompensa atacam", "O Sentinela — antigo parceiro corrompido"] },
+  { id: "oryn", name: "Oryn Telvax, o Raiz Dupla", role: "Comerciante / Informante", region: "Charroot", alignment: "neutro", icon: "🌿", color: "#7aba7a", secret: "Sendo chantageado pelo Clero da Seiva Negra. Sabe onde está um artefato de Xal'Vorith, o Fragmentado.", lore: '"Em Charroot, tudo tem um preço. Até o silêncio. Especialmente o silêncio."', services: ["Informação básica — 5 Cinzas", "Informação específica — 30–100 Cinzas", "Contato com facção — favor equivalente", "Silêncio — negociável"], hooks: ["O Preço do Silêncio — resolver problema com o Clero", "A Planta Suspeita — crescendo estranhamente"] },
+  { id: "sael", name: "Sael, a Guardiã do Juramento Eterno", role: "Cavaleira / Guardiã", region: "Eryndor", alignment: "aliado", icon: "⚔", color: "#e0c070", secret: "Sabe a fraqueza real de Aurelion — ele mesmo revelou em confiança. Não usou por questão de juramento.", lore: '"Não juro lealdade a homens. Juro lealdade ao que eles representam."', services: ["Acesso à Catedral do Juramento Eterno", "Mentora para guerreiros e paladinos", "Ritual do Voto (+2 Defesa por 24h)"], hooks: ["O Juramento Partido — resgatar o Cavaleiro", "A Cerimônia do Compromisso — ritual de restauração"] },
+  { id: "mira", name: "Mira Halvik, a Doutora da Praga", role: "Médica / Pesquisadora", region: "Ironscar", alignment: "aliado", icon: "🩺", color: "#e07070", secret: "Descobriu que a praga tem padrão rítmico — foi projetada. O Clero da Seiva Negra a criou como arma biológica.", lore: '"Morghast não criou a praga. Ele a encontrou. E onde há algo encontrado, há algo que o criou antes."', services: ["Tratamento básico — Grátis (para aliados)", "Antídoto de praga menor — ingredientes + 2 dias", "Análise de amostra — 1 dia"], hooks: ["A Origem da Praga — amostras do núcleo de Morghast", "O Arquivo do Clero — confirmar teoria"] },
+  { id: "dross", name: "Dross, o Andarilho Perdido", role: "Profeta / Entidade", region: "Skorn", alignment: "neutro", icon: "🌫", color: "#a0a0d0", secret: "FOI o Andarilho Perdido — boss menor de Skorn — antes de sua corrupção ser parcialmente revertida. Fala em riddles porque a verdade direta o apagaria.", lore: '"Você pergunta onde estou indo. Mas a questão certa é: de onde vim?"', services: ["Pistas e profecias (CD 15 Carisma)", "Aparece em momentos cruciais — nunca quando chamado"], hooks: ["A Pergunta Certa — algo chegando que os campos não conseguem engolir", "O Andarilho Parado — algo o prendeu"] },
+  { id: "kaelthas", name: "Kaelthas Morveth, o Véu Partido", role: "Arquimago Renegado", region: "Veloria", alignment: "neutro", icon: "🌀", color: "#c090e0", secret: "Pesquisa como fragmentar a Essência do Vazio de Elyndra para reformar Veloria sob suas próprias regras. Pode ser persuadido a aliar-se contra Luthyra.", lore: '"Luthyra criou as regras da magia. Eu descobri o que existe quando as regras acabam."', services: ["Magias proibidas (mediante troca)", "Biblioteca de segredos de Eldria", "Acesso dimensional (situacional)"], hooks: ["A Biblioteca Proibida — item específico em Veloria", "O Outro Lado do Véu — entrar na fenda dimensional"] },
+  { id: "theron", name: "Theron Ashgrave, o Arquiteto Cinzento", role: "Conselheiro / Manipulador", region: "Ashgrave", alignment: "antagonista", icon: "🕯", color: "#b0b0b0", secret: "Manipulando eventos para o Círculo Cinzento assumir controle administrativo de múltiplos reinos simultaneamente.", lore: '"O poder não se toma. O poder se herda — de quem você fez acreditar que escolheu te dá-lo."', services: ["Informação política (a um custo oculto)", "Acesso ao Salão dos Cinzentes"], hooks: ["Favor Cinzento — serviço que beneficia o Círculo mais do que parece", "O Arquivo — documentos comprometedores descobertos"] }
+];
+
+const SOUL_ABILITIES = {
+  guerreiro: {
+    label: "⚔ Guerreiro",
+    color: "#e07070",
+    abilities: [
+      { name: "Assombração de Medo", desc: "Manifesta presença espiritual para impor -2 nos testes de ataque de um inimigo por 3 rodadas." },
+      { name: "Escudo Espiritual", desc: "Protege um aliado vivo. Próximo ataque contra ele causa metade do dano." },
+      { name: "Eco de Batalha", desc: "Sussurra táticas ao ouvido de aliado — concede vantagem em 1 teste de combate." }
+    ]
+  },
+  mago: {
+    label: "🔮 Mago",
+    color: "#9090e0",
+    abilities: [
+      { name: "Feitiço Residual", desc: "Lança 1 feitiço de nível 1 com metade da potência normal. Requer Concentração CD 14." },
+      { name: "Visão Arcana", desc: "Sente portais, fontes mágicas e seres ocultos em um raio de 30m." },
+      { name: "Leitura de Magia", desc: "Identifica efeitos mágicos ativos sem precisar de componentes." }
+    ]
+  },
+  clerigo: {
+    label: "🙏 Clérigo",
+    color: "#e0d070",
+    abilities: [
+      { name: "Bênção Espiritual", desc: "Concede +1 em todos os testes a um aliado vivo por 1 hora." },
+      { name: "Revelação Divina", desc: "Revela criaturas malignas invisíveis em um raio de 20m." },
+      { name: "Oração de Retorno", desc: "Reduz o custo do Ritual de Aliados em 1 item quando o clérigo é a alma rezando." }
+    ]
+  },
+  assassino: {
+    label: "🗡 Assassino",
+    color: "#808080",
+    abilities: [
+      { name: "Espionagem Espiritual", desc: "Observa qualquer lugar como espírito sem ser detectado. Dura 10 minutos." },
+      { name: "Sussurro Sombrio", desc: "Transmite informação a um aliado específico sem ser ouvido por outros." },
+      { name: "Sabotagem Espectral", desc: "Perturba 1 inimigo — ele sente presença, fica com -1 na próxima rolagem." }
+    ]
+  },
+  druida: {
+    label: "🌿 Druida",
+    color: "#70ba70",
+    abilities: [
+      { name: "Voz da Natureza", desc: "Comunica-se com animais e plantas para obter informações do ambiente." },
+      { name: "Guia Espiritual", desc: "Indica a rota mais segura para aliados. Eles recebem vantagem em testes de navegação por 1 hora." },
+      { name: "Barreira da Raiz", desc: "Retarda poder sombrio ou magia corrompida por 2 rodadas." }
+    ]
+  },
+  paladino: {
+    label: "🛡 Paladino",
+    color: "#c0a040",
+    abilities: [
+      { name: "Juramento Eterno", desc: "Mesmo como alma, mantém presença sagrada. Criaturas mortas-vivas têm -2 em testes próximos." },
+      { name: "Voto de Proteção", desc: "Absorve 50% do próximo dano fatal que um aliado sofreria. A alma consome força — 1 ponto de HP máximo ao ressuscitar." },
+      { name: "Luz da Convicção", desc: "Ilumina área de 10m com luz espiritual. Aliados têm vantagem em testes de Percepção." }
+    ]
+  }
+};
+
+const RULES = [
+  {
+    section: "⚔ Combate",
+    rules: [
+      { title: "Iniciativa", desc: "Role d20 + Destreza. Ordem decrescente. Em empate, o jogador age antes do inimigo.", type: "normal" },
+      { title: "Ação de Ataque", desc: "1 ataque por turno padrão. Ações bônus e reações são adicionais.", type: "normal" },
+      { title: "Morte em Combate", desc: "Ao chegar a 0 HP: entra em estado de Alma Errante. O corpo cai. A alma persiste.", type: "fundamental" },
+      { title: "Golpe Crítico", desc: "Resultado 20 natural: dano máximo + rola o dado novamente.", type: "normal" },
+      { title: "Falha Crítica", desc: "Resultado 1 natural: ação falha e pode causar efeito adverso (GM determina).", type: "normal" }
+    ]
+  },
+  {
+    section: "👻 Sistema de Alma",
+    rules: [
+      { title: "FUNDAMENTAL — Separação Corpo/Alma", desc: "Ao morrer, o personagem entra em estado de Alma Errante. O corpo e a alma são indivíduos separados neste estado. Ações de corpo não são permitidas à alma, e vice-versa.", type: "fundamental" },
+      { title: "FUNDAMENTAL — Ações de Alma", desc: "Almas errantes só podem executar as abilidades listadas para sua classe no Sistema de Alma. Qualquer outra ação física é IMPOSSÍVEL e será bloqueada.", type: "fundamental" },
+      { title: "FUNDAMENTAL — Destruição de Alma", desc: "Se a alma for destruída no plano espiritual, o personagem sofre Morte Permanente. Não há ressurreição sem intervenção dos Elden Lords.", type: "fundamental" },
+      { title: "Ressurreição por Fogueira", desc: "Ao alcançar uma fogueira ativa, o personagem retorna automaticamente. Inimigos da área reaparecem.", type: "normal" },
+      { title: "Ritual de Aliados", desc: "Mínimo 2 aliados, cada um gasta 1 item raro. Demora 3 rodadas completas sem interrupção.", type: "normal" }
+    ]
+  },
+  {
+    section: "🗺 Exploração",
+    rules: [
+      { title: "Descoberta de Área", desc: "Entrar em nova região concede 50 pontos de experiência.", type: "normal" },
+      { title: "Zona Neutra", desc: "Combate dentro do Santuário do Vento Perdido é proibido por todos os reinos. Atacar ali gera consequências diplomáticas graves.", type: "fundamental" },
+      { title: "Descanso Curto", desc: "1 hora de repouso. Recupera metade da stamina.", type: "normal" },
+      { title: "Descanso Longo", desc: "8 horas em local seguro ou fogueira. Recupera HP e stamina totais.", type: "normal" }
+    ]
+  },
+  {
+    section: "⚖ Regras do GM",
+    rules: [
+      { title: "Override de Regra", desc: "O GM pode sobrepor uma regra fundamental com justificativa narrativa válida. A decisão é registrada automaticamente no log.", type: "fundamental" },
+      { title: "Informação Oculta (Segredos)", desc: "Informações marcadas como 'Apenas para o Mestre' nunca devem ser reveladas diretamente. Devem ser descobertas pelos jogadores.", type: "fundamental" },
+      { title: "Rolagens Ocultas", desc: "GM pode rolar dados ocultamente e informar apenas o resultado narrativo.", type: "normal" }
+    ]
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+
+let players = [];
+let sessionLog = [];
+let violations = [];
+let sessionStart = Date.now();
+let diceHistory = [];
+
+const REGION_POSITIONS = {
+  ashen: { x: 200, y: 270 },
+  dread: { x: 130, y: 130 },
+  charroot: { x: 160, y: 470 },
+  eryndor: { x: 430, y: 220 },
+  ironscar: { x: 420, y: 470 },
+  skorn: { x: 700, y: 130 },
+  veloria: { x: 700, y: 310 },
+  ashgrave: { x: 720, y: 490 },
+  neutral: { x: 430, y: 360 }
+};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  const page = document.getElementById('page-' + pageId);
+  if (page) page.classList.add('active');
+
+  const btn = document.querySelector(`.nav-btn[data-page="${pageId}"]`);
+  if (btn) btn.classList.add('active');
+
+  closeDetailPanel();
+}
+
+document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => showPage(btn.dataset.page));
+});
+
+// ============================================================
+// MODALS
+// ============================================================
+
+function openModal(id) {
+  document.getElementById(id).style.display = 'flex';
+  if (id === 'validate-modal') populateValidateSelect();
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+  const result = document.getElementById('validate-result');
+  if (result) result.style.display = 'none';
+}
+
+// ============================================================
+// DETAIL PANEL
+// ============================================================
+
+function openDetailPanel(title, subtitle, bodyHTML) {
+  document.getElementById('detail-panel-title').textContent = title;
+  document.getElementById('detail-panel-subtitle').textContent = subtitle;
+  document.getElementById('detail-panel-body').innerHTML = bodyHTML;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetailPanel() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+// ============================================================
+// REGIONS
+// ============================================================
+
+function openRegion(regionId) {
+  const r = REGIONS[regionId];
+  if (!r) return;
+
+  const npcsHTML = r.npcs.map(n => `<div class="badge badge-gold" style="margin:2px;">${n}</div>`).join('');
+  const locsHTML = r.locations.map(l => `<div class="badge badge-gray" style="margin:2px;">${l}</div>`).join('');
+
+  const html = `
+    <div style="text-align:center;padding:20px;background:${r.theme};margin-bottom:16px;">
+      <div style="font-size:3rem;margin-bottom:8px;">${r.icon}</div>
+      <div style="font-family:'Cinzel',serif;color:${r.color};font-size:1.2rem;">${r.name}</div>
+    </div>
+    <div class="detail-lore">${r.lore}</div>
+    <div style="margin-bottom:12px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:6px;">NPCS</div>
+      ${npcsHTML || '<div style="color:var(--fog);font-size:0.85rem;">Nenhum NPC listado</div>'}
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:6px;">LOCAIS</div>
+      ${locsHTML || '<div style="color:var(--fog);font-size:0.85rem;">Nenhum local listado</div>'}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="badge badge-red">⚠ Perigo: ${r.danger}</div>
+      <div class="badge badge-gray">${r.theme_tag}</div>
+    </div>
+  `;
+
+  openDetailPanel(r.name, r.subtitle, html);
+  addLog('discovery', `Região acessada: ${r.name}`);
+}
+
+function renderRegions() {
+  const grid = document.getElementById('regions-grid');
+  grid.innerHTML = Object.entries(REGIONS).map(([key, r]) => `
+    <div class="location-card" onclick="openRegion('${key}')">
+      <div class="location-art" style="background:${r.theme};">
+        <div style="font-size:3rem;opacity:0.8;">${r.icon}</div>
+        <div style="position:absolute;bottom:8px;right:8px;"><div class="badge badge-red" style="font-size:0.55rem;">⚠ ${r.danger}</div></div>
+      </div>
+      <div class="location-info">
+        <div class="location-name" style="color:${r.color};">${r.name}</div>
+        <div class="location-type">${r.subtitle}</div>
+        <div style="font-size:0.8rem;color:var(--fog);line-height:1.5;">${r.lore.slice(0, 120)}...</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
+          ${r.npcs.map(n => `<span style="font-size:0.7rem;color:var(--fog-light);">• ${n}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// NPCs
+// ============================================================
+
+let currentNPCFilter = 'all';
+
+function filterNPCs(filter) {
+  currentNPCFilter = filter;
+  renderNPCs();
+}
+
+function renderNPCs() {
+  const grid = document.getElementById('npcs-grid');
+  const filtered = currentNPCFilter === 'all' ? NPCS : NPCS.filter(n => n.alignment === currentNPCFilter);
+
+  const alignColors = { aliado: '#6fba6f', neutro: '#a0a0d0', antagonista: '#e05555' };
+  const alignLabel = { aliado: 'Aliado', neutro: 'Neutro', antagonista: 'Antagonista' };
+
+  grid.innerHTML = filtered.map(npc => `
+    <div class="npc-card" onclick="openNPC('${npc.id}')">
+      <div class="npc-portrait" style="background:linear-gradient(135deg,rgba(0,0,0,0.6),rgba(0,0,0,0.4));">
+        <span style="font-size:2.8rem;">${npc.icon}</span>
+        <div style="position:absolute;top:8px;right:8px;">
+          <span class="badge" style="border-color:${alignColors[npc.alignment]};color:${alignColors[npc.alignment]};background:${alignColors[npc.alignment]}20;font-size:0.55rem;">${alignLabel[npc.alignment]}</span>
+        </div>
+      </div>
+      <div class="npc-info">
+        <div class="npc-name" style="color:${npc.color};">${npc.name}</div>
+        <div class="npc-role">${npc.role}</div>
+        <div class="badge badge-gray" style="font-size:0.6rem;">${npc.region}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openNPC(id) {
+  const npc = NPCS.find(n => n.id === id);
+  if (!npc) return;
+
+  const html = `
+    <div style="text-align:center;padding:20px;background:linear-gradient(135deg,rgba(0,0,0,0.6),rgba(0,0,0,0.3));margin-bottom:16px;">
+      <div style="font-size:3rem;margin-bottom:8px;">${npc.icon}</div>
+    </div>
+    <div class="detail-lore">${npc.lore}</div>
+    <div class="rule-item" style="margin-bottom:12px;">
+      <div class="rule-item-title" style="color:#e05555;">⚠ Segredo (Apenas GM)</div>
+      <div class="rule-item-desc">${npc.secret}</div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:8px;">SERVIÇOS</div>
+      ${npc.services.map(s => `<div style="font-size:0.85rem;color:var(--fog-light);padding:4px 0;border-bottom:1px solid rgba(201,168,76,0.08);">• ${s}</div>`).join('')}
+    </div>
+    <div>
+      <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:8px;">GANCHOS DE MISSÃO</div>
+      ${npc.hooks.map(h => `<div style="font-size:0.85rem;color:var(--fog-light);padding:4px 0;">☐ ${h}</div>`).join('')}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">
+      <span class="badge badge-gray">${npc.region}</span>
+    </div>
+  `;
+
+  openDetailPanel(npc.name, npc.role, html);
+  addLog('discovery', `NPC consultado: ${npc.name}`);
+}
+
+// ============================================================
+// PLAYERS
+// ============================================================
+
+const CLASS_EMOJIS = { guerreiro: '⚔', mago: '🔮', clerigo: '🙏', assassino: '🗡', druida: '🌿', paladino: '🛡' };
+
+function addPlayer() {
+  const name = document.getElementById('new-player-name').value.trim();
+  if (!name) { alert('Digite o nome do personagem!'); return; }
+
+  const cls = document.getElementById('new-player-class').value;
+  const level = parseInt(document.getElementById('new-player-level').value);
+  const hpMax = parseInt(document.getElementById('new-player-hp').value);
+  const region = document.getElementById('new-player-region').value;
+  const avatar = document.getElementById('new-player-avatar').value.trim();
+
+  const player = {
+    id: Date.now().toString(),
+    name,
+    class: cls,
+    level,
+    hpMax,
+    hp: hpMax,
+    stamina: 100,
+    soulPower: 100,
+    region,
+    avatar,
+    state: 'alive', // alive | soul | dead
+    vigor: parseInt(document.getElementById('new-player-vigor').value),
+    dex: parseInt(document.getElementById('new-player-dex').value),
+    faith: parseInt(document.getElementById('new-player-faith').value),
+    str: parseInt(document.getElementById('new-player-str').value),
+    int: parseInt(document.getElementById('new-player-int').value),
+    arc: parseInt(document.getElementById('new-player-arc').value),
+    inventory: [],
+    conditions: []
+  };
+
+  players.push(player);
+  closeModal('add-player-modal');
+  renderPlayers();
+  renderPlayerTokens();
+  populateValidateSelect();
+  addLog('system', `Jogador adicionado: ${CLASS_EMOJIS[cls]} ${name} — ${cls} nível ${level}`);
+  updateAdminStats();
+
+  // Reset form
+  document.getElementById('new-player-name').value = '';
+  document.getElementById('new-player-avatar').value = '';
+}
+
+function renderPlayers() {
+  const grid = document.getElementById('players-grid');
+  if (players.length === 0) {
+    grid.innerHTML = '<div style="color:var(--fog);font-style:italic;grid-column:1/-1;text-align:center;padding:40px;">Nenhum jogador adicionado ainda.</div>';
+    return;
+  }
+
+  grid.innerHTML = players.map(p => {
+    const hpPct = (p.hp / p.hpMax) * 100;
+    const soulAbils = SOUL_ABILITIES[p.class];
+    const stateClass = p.state === 'soul' ? 'soul-state' : p.state === 'dead' ? 'dead-state' : '';
+    const stateBadge = p.state === 'soul'
+      ? '<div class="player-state-badge" style="border-color:var(--soul-blue);color:var(--soul-glow);">👻 Alma Errante</div>'
+      : p.state === 'dead'
+      ? '<div class="player-state-badge" style="border-color:var(--red-death);color:#e05555;">💀 Perdido</div>'
+      : '<div class="player-state-badge" style="border-color:#3d7a3d;color:#6fba6f;">🟢 Vivo</div>';
+
+    const avatarHTML = p.avatar && p.avatar.startsWith('http')
+      ? `<img class="player-avatar-img" src="${p.avatar}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+         <div class="player-avatar-placeholder" style="display:none;">${CLASS_EMOJIS[p.class]}</div>`
+      : `<div class="player-avatar-placeholder">${CLASS_EMOJIS[p.class]}</div>`;
+
+    const soulAbilsHTML = soulAbils ? soulAbils.abilities.map(a => `
+      <div class="soul-ability">
+        <div class="soul-ability-icon">👻</div>
+        <div>
+          <span class="soul-ability-name">${a.name}</span>
+          <span class="soul-ability-desc">${a.desc}</span>
+        </div>
+      </div>
+    `).join('') : '';
+
+    return `
+      <div class="player-card ${stateClass}" id="player-card-${p.id}">
+        ${stateBadge}
+        <div class="player-avatar-area">
+          <div class="soul-overlay"></div>
+          ${avatarHTML}
+        </div>
+        <div class="player-info">
+          <div class="player-name">${p.name}</div>
+          <div class="player-class">${CLASS_EMOJIS[p.class]} ${p.class} • Nível ${p.level} • ${REGIONS[p.region]?.name || p.region}</div>
+          <div class="stat-bar">
+            <div class="stat-bar-label"><span>HP</span><span>${p.hp}/${p.hpMax}</span></div>
+            <div class="stat-bar-track"><div class="stat-bar-fill hp-fill" style="width:${hpPct}%"></div></div>
+          </div>
+          <div class="stat-bar">
+            <div class="stat-bar-label"><span>Stamina</span><span>${p.stamina}/100</span></div>
+            <div class="stat-bar-track"><div class="stat-bar-fill stamina-fill" style="width:${p.stamina}%"></div></div>
+          </div>
+          <div class="stat-bar">
+            <div class="stat-bar-label"><span>Alma</span><span>${p.soulPower}/100</span></div>
+            <div class="stat-bar-track"><div class="stat-bar-fill soul-fill" style="width:${p.soulPower}%"></div></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+            ${p.state === 'alive' ? `<button class="btn btn-sm btn-danger" onclick="killPlayer('${p.id}')">☠ Matar</button>` : ''}
+            ${p.state === 'soul' ? `<button class="btn btn-sm btn-soul" onclick="ressurectPlayer('${p.id}')">✨ Ressuscitar</button>` : ''}
+            ${p.state === 'alive' ? `<button class="btn btn-sm btn-soul" onclick="soulPlayer('${p.id}')">👻 Modo Alma</button>` : ''}
+            <button class="btn btn-sm" onclick="openPlayerDetail('${p.id}')">📋 Ficha</button>
+            <button class="btn btn-sm btn-danger" onclick="removePlayer('${p.id}')">✕</button>
+          </div>
+        </div>
+        ${p.state === 'soul' ? `
+        <div class="soul-abilities">
+          <div class="soul-abilities-title">✦ Poderes de Alma — ${soulAbils?.label || p.class} ✦</div>
+          ${soulAbilsHTML}
+        </div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function killPlayer(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  p.state = 'soul';
+  p.hp = 0;
+  renderPlayers();
+  renderPlayerTokens();
+  addLog('soul', `${p.name} morreu. A alma se separou do corpo. Modo Alma Errante ativado.`);
+  updateAdminStats();
+}
+
+function soulPlayer(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  p.state = 'soul';
+  renderPlayers();
+  renderPlayerTokens();
+  addLog('soul', `${p.name} entrou em modo Alma Errante por escolha do GM.`);
+}
+
+function ressurectPlayer(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  p.state = 'alive';
+  p.hp = Math.ceil(p.hpMax * 0.5);
+  renderPlayers();
+  renderPlayerTokens();
+  addLog('soul', `${p.name} ressuscitou. Alma retornou ao corpo com ${p.hp} HP.`);
+  updateAdminStats();
+}
+
+function removePlayer(id) {
+  if (!confirm('Remover este jogador?')) return;
+  players = players.filter(p => p.id !== id);
+  renderPlayers();
+  renderPlayerTokens();
+  populateValidateSelect();
+  updateAdminStats();
+}
+
+function openPlayerDetail(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('player-detail-name').textContent = p.name;
+  document.getElementById('player-detail-body').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><span class="stat-box-value">${p.vigor}</span><span class="stat-box-name">Vigor</span></div>
+      <div class="stat-box"><span class="stat-box-value">${p.dex}</span><span class="stat-box-name">Destreza</span></div>
+      <div class="stat-box"><span class="stat-box-value">${p.faith}</span><span class="stat-box-name">Fé</span></div>
+      <div class="stat-box"><span class="stat-box-value">${p.str}</span><span class="stat-box-name">Força</span></div>
+      <div class="stat-box"><span class="stat-box-value">${p.int}</span><span class="stat-box-name">Intelecto</span></div>
+      <div class="stat-box"><span class="stat-box-value">${p.arc}</span><span class="stat-box-name">Arcano</span></div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:8px;">HP</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-danger" onclick="adjustStat('${p.id}','hp',-10)">-10</button>
+          <span style="font-family:'Cinzel Decorative',serif;font-size:1.4rem;color:var(--gold);min-width:60px;text-align:center;">${p.hp}/${p.hpMax}</span>
+          <button class="btn btn-sm btn-primary" onclick="adjustStat('${p.id}','hp',10)">+10</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:8px;">Stamina</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-danger" onclick="adjustStat('${p.id}','stamina',-10)">-10</button>
+          <span style="font-family:'Cinzel Decorative',serif;font-size:1.4rem;color:var(--gold);min-width:60px;text-align:center;">${p.stamina}/100</span>
+          <button class="btn btn-sm btn-primary" onclick="adjustStat('${p.id}','stamina',10)">+10</button>
+        </div>
+      </div>
+    </div>
+    <hr class="divider" style="margin:16px 0;">
+    <div>
+      <div style="font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold-dim);letter-spacing:2px;margin-bottom:8px;">LOCALIZAÇÃO</div>
+      <select onchange="movePlayer('${p.id}',this.value)">
+        ${Object.entries(REGIONS).map(([key, r]) => `<option value="${key}" ${p.region===key?'selected':''}>${r.icon} ${r.name}</option>`).join('')}
+      </select>
+    </div>
+  `;
+
+  document.getElementById('player-detail-footer').innerHTML = `
+    <button class="btn" onclick="closeModal('player-detail-modal')">Fechar</button>
+    <button class="btn btn-primary" onclick="closeModal('player-detail-modal');renderPlayers()">Salvar</button>
+  `;
+
+  openModal('player-detail-modal');
+}
+
+function adjustStat(id, stat, delta) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  if (stat === 'hp') p.hp = Math.max(0, Math.min(p.hpMax, p.hp + delta));
+  if (stat === 'stamina') p.stamina = Math.max(0, Math.min(100, p.stamina + delta));
+  if (p.hp === 0 && p.state === 'alive') { p.state = 'soul'; addLog('soul', `${p.name} chegou a 0 HP. Alma Errante ativada.`); }
+  openPlayerDetail(id);
+  renderPlayers();
+  renderPlayerTokens();
+}
+
+function movePlayer(id, region) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  const old = p.region;
+  p.region = region;
+  renderPlayerTokens();
+  addLog('discovery', `${p.name} moveu-se de ${REGIONS[old]?.name||old} para ${REGIONS[region]?.name||region}.`);
+}
+
+// ============================================================
+// MAP TOKENS
+// ============================================================
+
+function renderPlayerTokens() {
+  const layer = document.getElementById('player-tokens-layer');
+  layer.innerHTML = '';
+
+  players.forEach((p, i) => {
+    const pos = REGION_POSITIONS[p.region] || { x: 450, y: 300 };
+    const offset = (i % 4) * 22 - 33;
+    const x = pos.x + offset;
+    const y = pos.y + 50 + Math.floor(i / 4) * 22;
+
+    const isSoul = p.state === 'soul';
+    const tokenColor = isSoul ? '#4a9eca' : '#c9a84c';
+    const tokenOpacity = isSoul ? '0.6' : '0.95';
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', `player-token${isSoul?' soul-state':''}`);
+    g.setAttribute('transform', `translate(${x},${y})`);
+    g.setAttribute('data-player-id', p.id);
+    g.setAttribute('title', p.name);
+
+    g.innerHTML = `
+      <circle r="12" fill="${tokenColor}" opacity="${tokenOpacity}" stroke="${isSoul?'#7dc4e8':'#e8c97a'}" stroke-width="1.5"/>
+      <text x="0" y="4" text-anchor="middle" font-size="12">${CLASS_EMOJIS[p.class]}</text>
+      <text x="0" y="22" text-anchor="middle" font-family="Cinzel,serif" font-size="7" fill="${isSoul?'#7dc4e8':'#e8c97a'}">${p.name.split(' ')[0]}</text>
+      ${isSoul ? '<circle r="14" fill="none" stroke="#4a9eca" stroke-width="1" opacity="0.5" stroke-dasharray="3,2"/>' : ''}
+    `;
+
+    g.style.cursor = 'pointer';
+    g.addEventListener('click', () => { showPage('players'); });
+
+    layer.appendChild(g);
+  });
+}
+
+// ============================================================
+// DICE
+// ============================================================
+
+function rollDice(sides) {
+  const result = Math.floor(Math.random() * sides) + 1;
+  const isCrit = result === sides;
+  const isFail = result === 1 && sides >= 20;
+
+  document.getElementById('dice-result').innerHTML = `
+    <div class="dice-number" style="color:${isCrit?'#e8c97a':isFail?'#e05555':'var(--gold)'};">${result}</div>
+    <div class="dice-label">d${sides} ${isCrit?'— CRÍTICO! ✦':isFail?'— FALHA CRÍTICA ☠':''}</div>
+  `;
+
+  addLog('system', `🎲 Dado d${sides}: resultado ${result}${isCrit?' — CRÍTICO!':isFail?' — Falha Crítica!':''}`);
+  diceHistory.push({ sides, result, ts: Date.now() });
+}
+
+// ============================================================
+// SESSION LOG
+// ============================================================
+
+function addLog(type, message) {
+  const entry = { type, message, ts: Date.now() };
+  sessionLog.push(entry);
+
+  const time = new Date(entry.ts).toLocaleTimeString('pt-BR');
+  const el = document.createElement('div');
+  el.className = `log-entry log-${type}`;
+  el.innerHTML = `<span class="log-time">${time}</span>${message}`;
+
+  const container = document.getElementById('session-log-entries');
+  container.insertBefore(el, container.firstChild);
+
+  document.getElementById('last-event').textContent = message.slice(0, 60) + (message.length > 60 ? '...' : '');
+  document.getElementById('admin-log-count').textContent = sessionLog.length;
+}
+
+function clearLog() {
+  if (!confirm('Limpar todo o log?')) return;
+  sessionLog = [];
+  document.getElementById('session-log-entries').innerHTML = '';
+}
+
+function exportLog() {
+  const txt = sessionLog.map(e => `[${new Date(e.ts).toLocaleTimeString('pt-BR')}] [${e.type.toUpperCase()}] ${e.message}`).join('\n');
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fourpilar-session-log.txt';
+  a.click();
+}
+
+// ============================================================
+// GM TOOLS
+// ============================================================
+
+function startEncounter() {
+  const type = document.getElementById('encounter-type').value;
+  const region = document.getElementById('encounter-region').value;
+  addLog('combat', `⚔ ENCONTRO INICIADO — ${type} em ${region}! Rolar iniciativa!`);
+}
+
+function triggerSoulEvent() {
+  const events = [
+    "👻 Um fragmento de alma errante foi detectado na área. O véu entre os mundos está fino.",
+    "👻 Uma alma presa grita por libertação. Os vivos podem ouvi-la.",
+    "👻 O plano espiritual se sobrepõe ao físico por um momento. Almas errantes têm +1 em todos os testes.",
+    "👻 Um eco de memória de morte recente manifesta-se. O ambiente reflete a última emoção do falecido.",
+    "👻 Presença sombria tenta corromper uma alma errante próxima. Teste de Fé CD 15."
+  ];
+  const event = events[Math.floor(Math.random() * events.length)];
+  addLog('soul', event);
+}
+
+function sendLore() {
+  const msg = document.getElementById('lore-message').value.trim();
+  if (!msg) return;
+  addLog('discovery', `📜 GM: ${msg}`);
+  closeModal('message-modal');
+  document.getElementById('lore-message').value = '';
+}
+
+function renderRegionControl() {
+  const container = document.getElementById('region-control');
+  container.innerHTML = Object.entries(REGIONS).map(([key, r]) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid rgba(201,168,76,0.1);">
+      <span>${r.icon} <span style="font-family:'Cinzel',serif;font-size:0.85rem;color:${r.color};">${r.name}</span></span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="addLog('discovery','GM: Área ${r.name} revelada aos jogadores.')">🗺 Revelar</button>
+        <button class="btn btn-sm btn-danger" onclick="addLog('combat','PERIGO em ${r.name}! GM declarou zona de combate ativo.')">⚔ Perigo</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// RULE VALIDATOR
+// ============================================================
+
+function populateValidateSelect() {
+  const sel = document.getElementById('validate-player');
+  sel.innerHTML = '<option value="">-- Selecionar --</option>' +
+    players.map(p => `<option value="${p.id}">${p.name} (${p.state === 'soul' ? '👻 Alma' : '⚔ Vivo'})</option>`).join('');
+}
+
+function validateAction() {
+  const playerId = document.getElementById('validate-player').value;
+  const action = document.getElementById('validate-action').value.toLowerCase().trim();
+  const resultDiv = document.getElementById('validate-result');
+
+  if (!playerId || !action) {
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="violation-box"><h4>Dados Incompletos</h4><p>Selecione um jogador e descreva a ação.</p></div>';
+    return;
+  }
+
+  const player = players.find(p => p.id === playerId);
+  let violations_found = [];
+  let approved = true;
+
+  // === REGRAS DE VALIDAÇÃO ===
+
+  // Alma errante não pode atacar fisicamente
+  if (player.state === 'soul') {
+    const physicalKeywords = ['atacar', 'golpear', 'empurrar', 'segurar', 'pegar', 'abrir', 'fechar', 'carregar', 'levantar', 'correr', 'andar', 'mover', 'escalar', 'nadar', 'equipar', 'usar item', 'beber', 'comer'];
+    if (physicalKeywords.some(k => action.includes(k))) {
+      violations_found.push({ title: 'VIOLAÇÃO — Ação Física Proibida a Alma', desc: `${player.name} está em estado de Alma Errante. Almas não podem executar ações físicas. Apenas poderes específicos da classe ${player.class} são permitidos.` });
+      approved = false;
+    }
+  }
+
+  // Vivo não pode usar poderes de alma
+  if (player.state === 'alive') {
+    const soulKeywords = ['assombrar', 'atravessar parede', 'ser invisível como fantasma', 'voar sem magia', 'possuir'];
+    if (soulKeywords.some(k => action.includes(k))) {
+      violations_found.push({ title: 'VIOLAÇÃO — Poder de Alma sem Estado de Alma', desc: `${player.name} está vivo. Poderes de alma só estão disponíveis quando em estado de Alma Errante.` });
+      approved = false;
+    }
+  }
+
+  // Zona neutra
+  if (action.includes('atacar') && action.includes('santuário') || action.includes('atacar') && action.includes('zona neutra')) {
+    violations_found.push({ title: 'VIOLAÇÃO — Ataque em Zona Neutra', desc: 'Combate dentro do Santuário do Vento Perdido é proibido por todos os reinos de Eldria. Atacar ali gera consequências diplomáticas graves e quebra o voto de neutralidade.' });
+    approved = false;
+  }
+
+  // Destruição de alma
+  if (action.includes('destruir alma') || action.includes('eliminar alma')) {
+    violations_found.push({ title: 'ATENÇÃO — Morte Permanente', desc: 'Destruição de alma resulta em Morte Permanente. Esta ação é irreversível sem intervenção dos Elden Lords. O GM deve confirmar esta decisão antes de executá-la.' });
+  }
+
+  resultDiv.style.display = 'block';
+
+  if (approved && violations_found.length === 0) {
+    resultDiv.innerHTML = `<div class="success-box"><h4>✦ Ação Aprovada</h4><p style="color:#80c080;font-size:0.9rem;">Nenhuma violação de regra detectada. A ação pode ser executada.</p></div>`;
+    addLog('system', `⚖ Ação validada: "${action.slice(0,60)}..." — Aprovada`);
+  } else {
+    const violHTML = violations_found.map(v => `<div class="violation-box"><h4>☠ ${v.title}</h4><p>${v.desc}</p></div>`).join('');
+    resultDiv.innerHTML = violHTML;
+    violations_found.forEach(v => {
+      violations.push({ player: player.name, action: action.slice(0, 80), rule: v.title, ts: Date.now() });
+      addLog('rule', `⚖ INFRAÇÃO — ${player.name}: ${v.title}`);
+    });
+    updateAdminViolations();
+  }
+}
+
+// ============================================================
+// RULEBOOK RENDER
+// ============================================================
+
+function renderRulebook() {
+  const container = document.getElementById('rulebook-content');
+  container.innerHTML = RULES.map(section => `
+    <div class="rule-section">
+      <div class="rule-section-title">${section.section}</div>
+      ${section.rules.map(rule => `
+        <div class="rule-item ${rule.type === 'fundamental' ? 'rule-warning' : ''}">
+          <div class="rule-item-title ${rule.type === 'fundamental' ? 'rule-warning-title' : ''}">${rule.type === 'fundamental' ? '⚖ FUNDAMENTAL — ' : ''}${rule.title}</div>
+          <div class="rule-item-desc">${rule.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// SOUL ABILITIES RENDER
+// ============================================================
+
+function renderSoulAbilities() {
+  const container = document.getElementById('soul-class-abilities');
+  container.innerHTML = Object.entries(SOUL_ABILITIES).map(([key, cls]) => `
+    <div style="margin-bottom:16px;padding:14px;background:rgba(0,0,0,0.3);border-left:2px solid ${cls.color};">
+      <div style="font-family:'Cinzel',serif;color:${cls.color};font-size:0.9rem;letter-spacing:1px;margin-bottom:8px;">${cls.label}</div>
+      ${cls.abilities.map(a => `
+        <div style="display:flex;gap:10px;margin-bottom:6px;font-size:0.85rem;">
+          <span style="color:var(--soul-glow);flex-shrink:0;">•</span>
+          <div><span style="color:${cls.color};font-family:'Cinzel',serif;font-size:0.8rem;">${a.name}</span> — <span style="color:var(--fog-light);">${a.desc}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+
+function updateAdminStats() {
+  document.getElementById('admin-player-count').textContent = players.filter(p => p.state === 'alive').length;
+  document.getElementById('admin-soul-count').textContent = players.filter(p => p.state === 'soul').length;
+  document.getElementById('admin-log-count').textContent = sessionLog.length;
+}
+
+function updateAdminViolations() {
+  const container = document.getElementById('admin-violations');
+  if (violations.length === 0) {
+    container.innerHTML = '<span style="color:var(--fog);">Nenhuma infração registrada.</span>';
+    return;
+  }
+  container.innerHTML = violations.map(v => `
+    <div style="font-size:0.8rem;padding:6px 0;border-bottom:1px solid rgba(139,26,26,0.2);">
+      <span style="color:#e05555;">☠</span> <strong style="color:var(--fog-light);">${v.player}</strong>: ${v.rule}
+      <div style="color:var(--fog);font-size:0.75rem;margin-top:2px;">${new Date(v.ts).toLocaleTimeString('pt-BR')}</div>
+    </div>
+  `).join('');
+}
+
+function saveSettings() {
+  const name = document.getElementById('campaign-name').value;
+  const session = document.getElementById('session-number').value;
+  addLog('system', `Configurações salvas: ${name} — Sessão ${session}`);
+}
+
+// ============================================================
+// SESSION TIMER
+// ============================================================
+
+function updateTimer() {
+  const elapsed = Date.now() - sessionStart;
+  const h = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
+  const m = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
+  const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+  document.getElementById('session-timer').textContent = `${h}:${m}:${s}`;
+}
+
+setInterval(updateTimer, 1000);
+
+// ============================================================
+// INIT
+// ============================================================
+
+function init() {
+  renderRegions();
+  renderNPCs();
+  renderRulebook();
+  renderSoulAbilities();
+  renderRegionControl();
+  renderPlayers();
+  renderPlayerTokens();
+
+  addLog('system', '✦ Sessão iniciada. Bem-vindo ao mundo de Eldria — Four Pilar.');
+  addLog('system', 'Sistema de Alma ativo. Codex de Regras carregado. Validador pronto.');
+  addLog('discovery', '🗺 Todos os reinos de Eldria revelados no mapa.');
+}
+
+init();
+</script>
+</body>
+</html>
